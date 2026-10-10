@@ -1,2 +1,1 @@
-# blue
-Bookoteka Blue
+# Bookoteka Blue
