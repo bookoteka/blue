@@ -137,7 +137,7 @@ export default function Glowna() {
                 <tr key={ksiazka.id} className="transition-colors hover:bg-primary-50/60">
                   <td className="py-3.5 px-6 text-slate-600">{ksiazka.tytul ?? "—"}</td>
                   <td className="py-3.5 px-6 text-slate-600">{ksiazka.autor ?? "—"}</td>
-                  <td className="py-3.5 px-6 text-slate-600 font-semibold">{ksiazka.ocena ?? "—"}</td>
+                  <td className="py-3.5 px-6 text-slate-600 font-semibold">{ksiazka.ocena ?? "—"}⭐️</td>
                   <td className="py-3.5 px-6 text-slate-600">{ksiazka.jezyk ?? "—"}</td>
                   <td className="py-3.5 px-6 text-right">
                     <button type="button" className="text-primary-600 hover:text-primary-900 font-medium text-xs cursor-pointer">
@@ -176,7 +176,7 @@ function ModalMenu({ otwarte, onClose }: ModalMenuProps) {
         </div>
         <div className="flex flex-col py-1">
           <Link
-            to='/ustawienia'
+            to='/'
             onClick={onClose} 
             className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary-50 transition-colors cursor-pointer"
           >

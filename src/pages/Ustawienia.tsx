@@ -7,47 +7,6 @@ import { Link } from "react-router-dom";
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
 import { gatunki, ksiazkiGatunki } from "../db/schemat";
 
-function OAplikacji() {
-  return (
-    <div>
-      <h1 className="text-4xl text-primary-800">bookoteka <span className="text-blue-600">blue</span></h1>
-      <h2 className="text-lg">
-        Autor:{" "}
-        <a
-          className="text-primary-600 hover:underline"
-          href="https://github.com/bookoteka"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          Bookoteka Apps
-        </a>{" "}
-        by Karl Evans
-      </h2>
-      <hr className="my-4 border-slate-200" />
-      <h3 className="leading-relaxed">
-        Copyright (c) 2026 Karl Evans. Wszelkie prawa zastrzeżone.
-        <br />
-        <br />
-        Niniejsze oprogramowanie jest udostępniane wyłącznie do użytku
-        (uruchamiania i korzystania z aplikacji). Wszelkie prawa do kodu
-        źródłowego, architektury oraz zasobów projektu pozostają wyłączną
-        własnością autora.
-        <br />
-        <br />
-        Zabrania się:
-        <br />
-        1. Kopiowania, powielania oraz rozpowszechniania kodu źródłowego w
-        całości lub w części.
-        <br />
-        2. Modyfikowania, tworzenia dzieł pochodnych oraz dekompilacji kodu.
-        <br />
-        3. Wykorzystywania kodu źródłowego w innych projektach bez wyraźnej,
-        pisemnej zgody autora.
-      </h3>
-    </div>
-  );
-}
-
 export default function Ustawienia() {
   const [aktywnaZakladka, setAktywnaZakladka] = useState<"aplikacja" | "gatunki">(
     "aplikacja",
@@ -262,6 +221,47 @@ function Gatunki() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function OAplikacji() {
+  return (
+    <div>
+      <h1 className="text-4xl text-primary-800">bookoteka <span className="text-blue-600">blue</span></h1>
+      <h2 className="text-lg">
+        Autor:{" "}
+        <a
+          className="text-primary-600 hover:underline"
+          href="https://github.com/bookoteka"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Bookoteka Apps
+        </a>{" "}
+        by Karl Evans
+      </h2>
+      <hr className="my-4 border-slate-200" />
+      <h3 className="leading-relaxed">
+        Copyright (c) 2026 Karl Evans. Wszelkie prawa zastrzeżone.
+        <br />
+        <br />
+        Niniejsze oprogramowanie jest udostępniane wyłącznie do użytku
+        (uruchamiania i korzystania z aplikacji). Wszelkie prawa do kodu
+        źródłowego, architektury oraz zasobów projektu pozostają wyłączną
+        własnością autora.
+        <br />
+        <br />
+        Zabrania się:
+        <br />
+        1. Kopiowania, powielania oraz rozpowszechniania kodu źródłowego w
+        całości lub w części.
+        <br />
+        2. Modyfikowania, tworzenia dzieł pochodnych oraz dekompilacji kodu.
+        <br />
+        3. Wykorzystywania kodu źródłowego w innych projektach bez wyraźnej,
+        pisemnej zgody autora.
+      </h3>
     </div>
   );
 }

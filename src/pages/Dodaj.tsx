@@ -1,10 +1,10 @@
 // Strona dodawania - rout: /dodaj
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
-import { ksiazki } from "../db/schemat";
+import { gatunki, ksiazki, ksiazkiGatunki } from "../db/schemat";
 
 const klasyPola =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
@@ -12,9 +12,30 @@ const klasyPola =
 export default function Dodaj() {
   const [jednotomowka, setJednotomowka] = useState(false);
   const [nazwaSerii, setNazwaSerii] = useState("");
+  const [listaGatunkow, setListaGatunkow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
+  const [wybraneGatunki, setWybraneGatunki] = useState<number[]>([]);
   const [blad, setBlad] = useState<string | null>(null);
   const [zapisywanie, setZapisywanie] = useState(false);
   const nawigacja = useNavigate();
+
+  useEffect(() => {
+    async function zaladujGatunki() {
+      try {
+        await inicjalizujBazeDanych();
+        const wyniki = await bazaDanych
+          .select({ id: gatunki.id, nazwa: gatunki.nazwa })
+          .from(gatunki);
+        setListaGatunkow(wyniki);
+      } catch (bladLadowania) {
+        console.error("Błąd podczas ładowania gatunków:", bladLadowania);
+        setBlad("Nie udało się załadować gatunków. Spróbuj ponownie.");
+      }
+    }
+
+    void zaladujGatunki();
+  }, []);
 
   async function obsluzZapis(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,21 +49,40 @@ export default function Dodaj() {
       return;
     }
 
+    if (wybraneGatunki.length === 0) {
+      setBlad("Wybierz przynajmniej jeden gatunek.");
+      return;
+    }
+
     setZapisywanie(true);
 
     try {
       await inicjalizujBazeDanych();
-      await bazaDanych.insert(ksiazki).values({
-        tytul: String(daneFormularza.get("tytul")).trim(),
-        autor: String(daneFormularza.get("autor")).trim(),
-        strony: Number(daneFormularza.get("strony")),
-        format: String(daneFormularza.get("format")),
-        seria: jednotomowka ? "" : seria,
-        jednotomowka,
-        ocena: Number(daneFormularza.get("ocena")),
-        jezyk: String(daneFormularza.get("jezyk")),
-        notatki: String(daneFormularza.get("notatki") ?? "").trim(),
-      });
+      const [zapisanaKsiazka] = await bazaDanych
+        .insert(ksiazki)
+        .values({
+          tytul: String(daneFormularza.get("tytul")).trim(),
+          autor: String(daneFormularza.get("autor")).trim(),
+          strony: Number(daneFormularza.get("strony")),
+          format: String(daneFormularza.get("format")),
+          seria: jednotomowka ? "" : seria,
+          jednotomowka,
+          ocena: Number(daneFormularza.get("ocena")),
+          jezyk: String(daneFormularza.get("jezyk")),
+          notatki: String(daneFormularza.get("notatki") ?? "").trim(),
+        })
+        .returning({ id: ksiazki.id });
+
+      if (!zapisanaKsiazka) {
+        throw new Error("Nie zwrócono identyfikatora zapisanej książki.");
+      }
+
+      await bazaDanych.insert(ksiazkiGatunki).values(
+        wybraneGatunki.map((gatunekId) => ({
+          ksiazkaId: zapisanaKsiazka.id,
+          gatunekId,
+        })),
+      );
 
       nawigacja("/");
     } catch (bladZapisu) {
@@ -180,6 +220,43 @@ export default function Dodaj() {
               <option value="Polski">Polski</option>
               <option value="Angielski">Angielski</option>
             </select>
+          </div>
+
+          <div>
+            <h2 className="mb-3 font-semibold text-slate-900">Gatunki:</h2>
+            <div className="flex flex-wrap gap-2.5">
+              {listaGatunkow.map((gatunek) => {
+                const czyWybrany = wybraneGatunki.includes(gatunek.id);
+
+                return (
+                  <label
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
+                      czyWybrany
+                        ? "border-primary-600 bg-primary-50/50 text-primary-900"
+                        : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                    key={gatunek.id}
+                  >
+                    <input
+                      checked={czyWybrany}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      disabled={zapisywanie}
+                      onChange={(e) => {
+                        setWybraneGatunki((poprzednieGatunki) =>
+                          e.target.checked
+                            ? [...poprzednieGatunki, gatunek.id]
+                            : poprzednieGatunki.filter(
+                                (id) => id !== gatunek.id,
+                              ),
+                        );
+                      }}
+                      type="checkbox"
+                    />
+                    <span>{gatunek.nazwa}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div>
