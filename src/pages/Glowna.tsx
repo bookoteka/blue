@@ -1,18 +1,41 @@
 // Strona główna - rout: /
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
+import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
+import { ksiazki } from "../db/schemat";
+
+type Ksiazka = typeof ksiazki.$inferSelect;
 
 export default function Glowna() {
   const [czyMenuOtwarte, setCzyMenuOtwarte] = useState(false);
+  const [ksiazkiZBazy, setKsiazkiZBazy] = useState<Ksiazka[]>([]);
+  const [ladowanie, setLadowanie] = useState(true);
+  const [blad, setBlad] = useState<string | null>(null);
 
-  // Statyczne dane na potrzeby makiety wizualnej
-  const przykladowePozycje = [
-    { id: 1, tytul: "Przykładowy tytuł 1", autor: "Jan Kowalski", ocena: "5", jezyk: "polski" },
-    { id: 2, tytul: "Przykładowy tytuł 2", autor: "Anna Nowak", ocena: "4", jezyk: "angielski" },
-    { id: 3, tytul: "Przykładowy tytuł 3", autor: "Piotr Wiśniewski", ocena: "5", jezyk: "polski" },
-  ];
-  const iloscKsiazek = przykladowePozycje.length;
-  const sumaStron = 344;
+  useEffect(() => {
+    async function zaladujKsiazki() {
+      try {
+        await inicjalizujBazeDanych();
+        const wyniki = await bazaDanych.select().from(ksiazki);
+        setKsiazkiZBazy(wyniki);
+      } catch (bladLadowania) {
+        console.error("Błąd podczas ładowania książek:", bladLadowania);
+        setBlad("Nie udało się załadować książek. Spróbuj ponownie.");
+      } finally {
+        setLadowanie(false);
+      }
+    }
+
+    void zaladujKsiazki();
+  }, []);
+
+  const iloscKsiazek = ksiazkiZBazy.length;
+  const sumaStron = ksiazkiZBazy.reduce(
+    (suma, ksiazka) => suma + (ksiazka.strony ?? 0),
+    0,
+  );
 
   return (
     <div style={{ padding: "1rem" }} className="relative">
@@ -91,19 +114,39 @@ export default function Glowna() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {przykladowePozycje.map((pozycja) => (
-                <tr key={pozycja.id} className="transition-colors hover:bg-primary-50/60">
-                  <td className="py-3.5 px-6 text-slate-600 capitalize">{pozycja.tytul}</td>
-                  <td className="py-3.5 px-6 text-slate-600">{pozycja.autor}</td>
-                  <td className="py-3.5 px-6 text-slate-600 font-semibold">{pozycja.ocena}</td>
-                  <td className="py-3.5 px-6 text-slate-600">{pozycja.jezyk}</td>
+              {ladowanie ? (
+                <tr>
+                  <td className="px-6 py-6 text-center text-slate-500" colSpan={5}>
+                    Ładowanie książek...
+                  </td>
+                </tr>
+              ) : blad ? (
+                <tr>
+                  <td className="px-6 py-6 text-center text-red-600" colSpan={5}>
+                    {blad}
+                  </td>
+                </tr>
+              ) : ksiazkiZBazy.length === 0 ? (
+                <tr>
+                  <td className="px-6 py-6 text-center text-slate-500" colSpan={5}>
+                    Brak książek w bazie.
+                  </td>
+                </tr>
+              ) : (
+                ksiazkiZBazy.map((ksiazka) => (
+                <tr key={ksiazka.id} className="transition-colors hover:bg-primary-50/60">
+                  <td className="py-3.5 px-6 text-slate-600">{ksiazka.tytul ?? "—"}</td>
+                  <td className="py-3.5 px-6 text-slate-600">{ksiazka.autor ?? "—"}</td>
+                  <td className="py-3.5 px-6 text-slate-600 font-semibold">{ksiazka.ocena ?? "—"}</td>
+                  <td className="py-3.5 px-6 text-slate-600">{ksiazka.jezyk ?? "—"}</td>
                   <td className="py-3.5 px-6 text-right">
                     <button type="button" className="text-primary-600 hover:text-primary-900 font-medium text-xs cursor-pointer">
                       Pokaż
                     </button>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -131,28 +174,28 @@ function ModalMenu({ otwarte, onClose }: ModalMenuProps) {
         <div className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-100">
           Menu
         </div>
-        <div className="py-1">
-          <button 
-            type="button"
+        <div className="flex flex-col py-1">
+          <Link
+            to='/ustawienia'
             onClick={onClose} 
             className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary-50 transition-colors cursor-pointer"
           >
             Strona główna
-          </button>
-          <button 
-            type="button"
+          </Link>
+          <Link
+            to='/dodaj'
             onClick={onClose} 
             className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary-50 transition-colors cursor-pointer"
           >
-            Dodaj pozycję
-          </button>
-          <button 
-            type="button"
+            Dodaj książkę
+          </Link>
+          <Link
+            to='/ustawienia'
             onClick={onClose} 
             className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary-50 transition-colors cursor-pointer"
           >
             Ustawienia
-          </button>
+          </Link>
         </div>
       </div>
     </>
