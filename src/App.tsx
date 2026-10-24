@@ -4,6 +4,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Glowna from "./pages/Glowna";
 import Dodaj from "./pages/Dodaj";
 import Ustawienia from "./pages/Ustawienia";
+import WidokKsiazki from "./pages/WidokKsiazki";
+import Edytuj from "./pages/Edytuj";
 
 export default function App () {
   return (
@@ -13,6 +15,8 @@ export default function App () {
           <Route path="/" element={<Glowna/>} />
           <Route path="/dodaj" element={<Dodaj/>} />
           <Route path="/ustawienia" element={<Ustawienia/>} />
+          <Route path="/ksiazka/:id" element={<WidokKsiazki/>} />
+          <Route path="/ksiazka/:id/edytuj" element={<Edytuj/>} />
         </Routes>
       </div>
     </MemoryRouter>

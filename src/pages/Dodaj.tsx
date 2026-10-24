@@ -11,6 +11,7 @@ const klasyPola =
 
 export default function Dodaj() {
   const [jednotomowka, setJednotomowka] = useState(false);
+  const [statusDnf, setStatusDnf] = useState(false);
   const [nazwaSerii, setNazwaSerii] = useState("");
   const [listaGatunkow, setListaGatunkow] = useState<
     { id: number; nazwa: string }[]
@@ -64,6 +65,7 @@ export default function Dodaj() {
           tytul: String(daneFormularza.get("tytul")).trim(),
           autor: String(daneFormularza.get("autor")).trim(),
           strony: Number(daneFormularza.get("strony")),
+          statusDnf,
           format: String(daneFormularza.get("format")),
           seria: jednotomowka ? "" : seria,
           jednotomowka,
@@ -138,6 +140,19 @@ export default function Dodaj() {
               type="checkbox"
             />
             <label htmlFor="jednotomowka">Jednotomówka</label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              checked={statusDnf}
+              className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+              disabled={zapisywanie}
+              id="statusDnf"
+              name="statusDnf"
+              onChange={(e) => setStatusDnf(e.target.checked)}
+              type="checkbox"
+            />
+            <label htmlFor="statusDnf">Status DNF (nie ukończono)</label>
           </div>
 
           <div>

@@ -52,3 +52,13 @@ Twoim celem jest wspieranie programisty poprzez dostarczanie czystego, bezpieczn
 5. **JA** wyznaczam języki i technologie. Mogę kierować się twoją rekomendacją, jednak nie zawsze.
 6. **Problemy:** Jak coś będzie nie tak, będę załączać screenshoty bądź treści błędów
 7. **Nie usuwaj moich komentarzy:** Jeśli w kodzie są jakiekolwiek komentarze, których nie dodałeś, zostaw je tak jak są. Nie usuwaj ich!
+
+---
+
+## Technologie w tym projekcie
+
+1. Bun
+2. React TSX
+3. Tauri
+4. Tailwind CSS
+5. Drizzle ORM

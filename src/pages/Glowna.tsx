@@ -31,7 +31,10 @@ export default function Glowna() {
     void zaladujKsiazki();
   }, []);
 
-  const iloscKsiazek = ksiazkiZBazy.length;
+  const przeczytaneKsiazki = ksiazkiZBazy.filter(
+    (ksiazka) => !ksiazka.statusDnf,
+  );
+  const iloscKsiazek = przeczytaneKsiazki.length;
   const sumaStron = ksiazkiZBazy.reduce(
     (suma, ksiazka) => suma + (ksiazka.strony ?? 0),
     0,
@@ -75,7 +78,7 @@ export default function Glowna() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-primary-50 p-5 rounded-xl border border-primary-100 shadow-sm">
           <span className="text-sm font-medium text-gray-500 uppercase tracking-wider block">
-            Przeczytane książki
+            Przeczytane pozycje
           </span>
           <span className="text-3xl font-extrabold text-primary-600">
             {iloscKsiazek}
@@ -140,9 +143,7 @@ export default function Glowna() {
                   <td className="py-3.5 px-6 text-slate-600 font-semibold">{ksiazka.ocena ?? "—"}⭐️</td>
                   <td className="py-3.5 px-6 text-slate-600">{ksiazka.jezyk ?? "—"}</td>
                   <td className="py-3.5 px-6 text-right">
-                    <button type="button" className="text-primary-600 hover:text-primary-900 font-medium text-xs cursor-pointer">
-                      Pokaż
-                    </button>
+                    <Link to={`/ksiazka/${ksiazka.id}`} className="text-primary-600 hover:text-primary-900 font-medium text-xs cursor-pointer">Pokaż</Link>
                   </td>
                 </tr>
                 ))
