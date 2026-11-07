@@ -5,7 +5,13 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { eq } from "drizzle-orm";
 
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
-import { gatunki, ksiazki, ksiazkiGatunki } from "../db/schemat";
+import {
+  gatunki,
+  ksiazki,
+  ksiazkiGatunki,
+  ksiazkiTagi,
+  tagi,
+} from "../db/schemat";
 
 const klasyPola =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
@@ -17,12 +23,15 @@ export default function Edytuj() {
   const nawigacja = useNavigate();
   const [ksiazka, setKsiazka] = useState<DaneKsiazki | null>(null);
   const [jednotomowka, setJednotomowka] = useState(false);
-  const [statusDnf, setStatusDnf] = useState(false);
   const [nazwaSerii, setNazwaSerii] = useState("");
   const [listaGatunkow, setListaGatunkow] = useState<
     { id: number; nazwa: string }[]
   >([]);
   const [wybraneGatunki, setWybraneGatunki] = useState<number[]>([]);
+  const [listaTagow, setListaTagow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
+  const [wybraneTagi, setWybraneTagi] = useState<number[]>([]);
   const [ladowanie, setLadowanie] = useState(true);
   const [blad, setBlad] = useState<string | null>(null);
   const [zapisywanie, setZapisywanie] = useState(false);
@@ -40,7 +49,13 @@ export default function Edytuj() {
 
       try {
         await inicjalizujBazeDanych();
-        const [wynikiKsiazki, wynikiGatunkow, wszystkieGatunki] =
+        const [
+          wynikiKsiazki,
+          wynikiGatunkow,
+          wszystkieGatunki,
+          wynikiTagow,
+          wszystkieTagi,
+        ] =
           await Promise.all([
             bazaDanych
               .select()
@@ -53,6 +68,11 @@ export default function Edytuj() {
             bazaDanych
               .select({ id: gatunki.id, nazwa: gatunki.nazwa })
               .from(gatunki),
+            bazaDanych
+              .select({ tagId: ksiazkiTagi.tagId })
+              .from(ksiazkiTagi)
+              .where(eq(ksiazkiTagi.ksiazkaId, idKsiazki)),
+            bazaDanych.select({ id: tagi.id, nazwa: tagi.nazwa }).from(tagi),
           ]);
 
         const znalezionaKsiazka = wynikiKsiazki[0];
@@ -63,10 +83,11 @@ export default function Edytuj() {
         if (!aktywny) return;
         setKsiazka(znalezionaKsiazka);
         setJednotomowka(znalezionaKsiazka.jednotomowka);
-        setStatusDnf(znalezionaKsiazka.statusDnf);
         setNazwaSerii(znalezionaKsiazka.seria ?? "");
         setWybraneGatunki(wynikiGatunkow.map(({ gatunekId }) => gatunekId));
         setListaGatunkow(wszystkieGatunki);
+        setWybraneTagi(wynikiTagow.map(({ tagId }) => tagId));
+        setListaTagow(wszystkieTagi);
       } catch (bladLadowania) {
         console.error("Błąd podczas ładowania książki do edycji:", bladLadowania);
         if (aktywny) {
@@ -112,7 +133,6 @@ export default function Edytuj() {
           tytul: String(daneFormularza.get("tytul")).trim(),
           autor: String(daneFormularza.get("autor")).trim(),
           strony: Number(daneFormularza.get("strony")),
-          statusDnf,
           format: String(daneFormularza.get("format")),
           seria: jednotomowka ? "" : seria,
           jednotomowka,
@@ -132,6 +152,19 @@ export default function Edytuj() {
           gatunekId,
         })),
       );
+
+      await bazaDanych
+        .delete(ksiazkiTagi)
+        .where(eq(ksiazkiTagi.ksiazkaId, ksiazka.id));
+
+      if (wybraneTagi.length > 0) {
+        await bazaDanych.insert(ksiazkiTagi).values(
+          wybraneTagi.map((tagId) => ({
+            ksiazkaId: ksiazka.id,
+            tagId,
+          })),
+        );
+      }
 
       nawigacja(`/ksiazka/${ksiazka.id}`);
     } catch (bladZapisu) {
@@ -197,18 +230,6 @@ export default function Edytuj() {
               type="checkbox"
             />
             <label htmlFor="jednotomowka">Jednotomówka</label>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              checked={statusDnf}
-              className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-              disabled={zapisywanie}
-              id="statusDnf"
-              onChange={(e) => setStatusDnf(e.target.checked)}
-              type="checkbox"
-            />
-            <label htmlFor="statusDnf">Status DNF (nie ukończono)</label>
           </div>
 
           <div>
@@ -284,6 +305,30 @@ export default function Edytuj() {
                       type="checkbox"
                     />
                     <span>{gatunek.nazwa}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="mb-3 font-semibold text-slate-900">Tagi:</h2>
+            <div className="flex flex-wrap gap-2.5">
+              {listaTagow.map((tag) => {
+                const czyWybrany = wybraneTagi.includes(tag.id);
+                return (
+                  <label
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${czyWybrany ? "border-primary-600 bg-primary-50/50 text-primary-900" : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                    key={tag.id}
+                  >
+                    <input
+                      checked={czyWybrany}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      disabled={zapisywanie}
+                      onChange={(e) => setWybraneTagi((poprzednie) => e.target.checked ? [...poprzednie, tag.id] : poprzednie.filter((idTagu) => idTagu !== tag.id))}
+                      type="checkbox"
+                    />
+                    <span>{tag.nazwa}</span>
                   </label>
                 );
               })}

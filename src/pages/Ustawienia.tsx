@@ -5,12 +5,12 @@ import { asc, eq } from "drizzle-orm";
 import { Link } from "react-router-dom";
 
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
-import { gatunki, ksiazkiGatunki } from "../db/schemat";
+import { gatunki, ksiazkiGatunki, ksiazkiTagi, tagi } from "../db/schemat";
 
 export default function Ustawienia() {
-  const [aktywnaZakladka, setAktywnaZakladka] = useState<"aplikacja" | "gatunki">(
-    "aplikacja",
-  );
+  const [aktywnaZakladka, setAktywnaZakladka] = useState<
+    "aplikacja" | "gatunki" | "tagi"
+  >("aplikacja");
 
   return (
     <main className="mx-auto max-w-5xl p-8">
@@ -57,10 +57,27 @@ export default function Ustawienia() {
           >
             Gatunki
           </button>
+          <button
+            className={`rounded-lg px-4 py-2 text-left text-lg font-medium transition-colors ${
+              aktywnaZakladka === "tagi"
+                ? "bg-primary-600 text-white"
+                : "text-slate-700 hover:bg-primary-100"
+            }`}
+            onClick={() => setAktywnaZakladka("tagi")}
+            type="button"
+          >
+            Tagi
+          </button>
         </aside>
 
         <section className="min-h-75 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:col-span-3">
-          {aktywnaZakladka === "aplikacja" ? <OAplikacji /> : <Gatunki />}
+          {aktywnaZakladka === "aplikacja" ? (
+            <OAplikacji />
+          ) : aktywnaZakladka === "gatunki" ? (
+            <Gatunki />
+          ) : (
+            <Tagi />
+          )}
         </section>
       </div>
     </main>
@@ -216,6 +233,166 @@ function Gatunki() {
                 type="button"
               >
                 {usuwanyGatunekId === gatunek.id ? "Usuwanie..." : "Usuń"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function Tagi() {
+  const [listaTagow, setListaTagow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
+  const [nazwaTagu, setNazwaTagu] = useState("");
+  const [blad, setBlad] = useState<string | null>(null);
+  const [komunikat, setKomunikat] = useState<string | null>(null);
+  const [ladowanie, setLadowanie] = useState(true);
+  const [zapisywanie, setZapisywanie] = useState(false);
+  const [usuwanyTagId, setUsuwanyTagId] = useState<number | null>(null);
+
+  async function odswiezTagi() {
+    const wyniki = await bazaDanych
+      .select({ id: tagi.id, nazwa: tagi.nazwa })
+      .from(tagi)
+      .orderBy(asc(tagi.nazwa));
+    setListaTagow(wyniki);
+  }
+
+  useEffect(() => {
+    async function zaladujTagi() {
+      try {
+        await inicjalizujBazeDanych();
+        await odswiezTagi();
+      } catch (bladLadowania) {
+        console.error("Błąd podczas ładowania tagów:", bladLadowania);
+        setBlad("Nie udało się załadować tagów. Spróbuj ponownie.");
+      } finally {
+        setLadowanie(false);
+      }
+    }
+
+    void zaladujTagi();
+  }, []);
+
+  async function obsluzDodanie(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const oczyszczonaNazwa = nazwaTagu.trim();
+    setBlad(null);
+    setKomunikat(null);
+
+    if (oczyszczonaNazwa.length === 0) {
+      setBlad("Podaj nazwę tagu.");
+      return;
+    }
+
+    if (
+      listaTagow.some(
+        (tag) =>
+          tag.nazwa.toLocaleLowerCase() ===
+          oczyszczonaNazwa.toLocaleLowerCase(),
+      )
+    ) {
+      setBlad("Taki tag już istnieje.");
+      return;
+    }
+
+    setZapisywanie(true);
+
+    try {
+      await bazaDanych.insert(tagi).values({ nazwa: oczyszczonaNazwa });
+      setNazwaTagu("");
+      await odswiezTagi();
+      setKomunikat("Tag został dodany.");
+    } catch (bladZapisu) {
+      console.error("Błąd podczas dodawania tagu:", bladZapisu);
+      setBlad("Nie udało się dodać tagu. Sprawdź, czy nazwa jest unikalna.");
+    } finally {
+      setZapisywanie(false);
+    }
+  }
+
+  async function obsluzUsuwanie(idTagu: number) {
+    setBlad(null);
+    setKomunikat(null);
+    setUsuwanyTagId(idTagu);
+
+    try {
+      const przypisania = await bazaDanych
+        .select({ ksiazkaId: ksiazkiTagi.ksiazkaId })
+        .from(ksiazkiTagi)
+        .where(eq(ksiazkiTagi.tagId, idTagu));
+
+      if (przypisania.length > 0) {
+        setBlad("Nie można usunąć tagu przypisanego do książek.");
+        return;
+      }
+
+      await bazaDanych.delete(tagi).where(eq(tagi.id, idTagu));
+      await odswiezTagi();
+      setKomunikat("Tag został usunięty.");
+    } catch (bladUsuwania) {
+      console.error("Błąd podczas usuwania tagu:", bladUsuwania);
+      setBlad("Nie udało się usunąć tagu. Spróbuj ponownie.");
+    } finally {
+      setUsuwanyTagId(null);
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="mb-6 text-2xl font-bold text-primary-900">Tagi</h2>
+
+      <form className="mb-6 flex flex-col gap-3 sm:flex-row" onSubmit={obsluzDodanie}>
+        <label className="sr-only" htmlFor="nazwa-tagu">
+          Nazwa tagu
+        </label>
+        <input
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          id="nazwa-tagu"
+          onChange={(e) => setNazwaTagu(e.target.value)}
+          placeholder="Nazwa nowego tagu"
+          type="text"
+          value={nazwaTagu}
+        />
+        <button
+          className="rounded-lg bg-primary-600 px-5 py-2 font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={zapisywanie}
+          type="submit"
+        >
+          {zapisywanie ? "Dodawanie..." : "Dodaj tag"}
+        </button>
+      </form>
+
+      {blad && (
+        <p aria-live="polite" className="mb-4 rounded-lg border border-red-300 bg-red-100 p-3 text-sm text-red-700">
+          {blad}
+        </p>
+      )}
+      {komunikat && (
+        <p aria-live="polite" className="mb-4 rounded-lg border border-green-300 bg-green-100 p-3 text-sm text-green-700">
+          {komunikat}
+        </p>
+      )}
+
+      {ladowanie ? (
+        <p className="text-slate-500">Ładowanie tagów...</p>
+      ) : listaTagow.length === 0 ? (
+        <p className="text-slate-500">Brak tagów.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+          {listaTagow.map((tag) => (
+            <li className="flex items-center justify-between gap-4 px-4 py-3" key={tag.id}>
+              <span className="text-slate-700">{tag.nazwa}</span>
+              <button
+                className="text-sm font-medium text-red-600 transition-colors hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={usuwanyTagId === tag.id}
+                onClick={() => void obsluzUsuwanie(tag.id)}
+                type="button"
+              >
+                {usuwanyTagId === tag.id ? "Usuwanie..." : "Usuń"}
               </button>
             </li>
           ))}

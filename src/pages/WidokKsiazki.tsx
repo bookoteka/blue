@@ -5,7 +5,13 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { eq } from "drizzle-orm";
 
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
-import { gatunki, ksiazki, ksiazkiGatunki } from "../db/schemat";
+import {
+  gatunki,
+  ksiazki,
+  ksiazkiGatunki,
+  ksiazkiTagi,
+  tagi,
+} from "../db/schemat";
 
 type Ksiazka = typeof ksiazki.$inferSelect;
 
@@ -41,6 +47,7 @@ export default function WidokKsiazki() {
   const nawigacja = useNavigate();
   const [ksiazka, setKsiazka] = useState<Ksiazka | null>(null);
   const [listaGatunkow, setListaGatunkow] = useState<string[]>([]);
+  const [listaTagow, setListaTagow] = useState<string[]>([]);
   const [ladowanie, setLadowanie] = useState(true);
   const [blad, setBlad] = useState<string | null>(null);
   const [pokazPotwierdzenie, setPokazPotwierdzenie] = useState(false);
@@ -54,6 +61,9 @@ export default function WidokKsiazki() {
       await bazaDanych
         .delete(ksiazkiGatunki)
         .where(eq(ksiazkiGatunki.ksiazkaId, ksiazka.id));
+      await bazaDanych
+        .delete(ksiazkiTagi)
+        .where(eq(ksiazkiTagi.ksiazkaId, ksiazka.id));
       await bazaDanych.delete(ksiazki).where(eq(ksiazki.id, ksiazka.id));
       nawigacja("/");
     } catch (bladUsuwania) {
@@ -78,7 +88,7 @@ export default function WidokKsiazki() {
       try {
         await inicjalizujBazeDanych();
 
-        const [wynikKsiazki, wynikGatunkow] = await Promise.all([
+        const [wynikKsiazki, wynikGatunkow, wynikTagow] = await Promise.all([
           bazaDanych
             .select()
             .from(ksiazki)
@@ -88,11 +98,17 @@ export default function WidokKsiazki() {
             .from(ksiazkiGatunki)
             .innerJoin(gatunki, eq(ksiazkiGatunki.gatunekId, gatunki.id))
             .where(eq(ksiazkiGatunki.ksiazkaId, idKsiazki)),
+          bazaDanych
+            .select({ nazwa: tagi.nazwa })
+            .from(ksiazkiTagi)
+            .innerJoin(tagi, eq(ksiazkiTagi.tagId, tagi.id))
+            .where(eq(ksiazkiTagi.ksiazkaId, idKsiazki)),
         ]);
 
         if (!aktywny) return;
         setKsiazka(wynikKsiazki[0] ?? null);
         setListaGatunkow(wynikGatunkow.map(({ nazwa }) => nazwa));
+        setListaTagow(wynikTagow.map(({ nazwa }) => nazwa));
       } catch (bladLadowania) {
         console.error("Błąd podczas ładowania książki:", bladLadowania);
         if (aktywny) {
@@ -141,11 +157,6 @@ export default function WidokKsiazki() {
             <h1 className="text-3xl font-bold text-primary-900 sm:text-4xl">
               {wyswietlWartosc(ksiazka.tytul)}
             </h1>
-            {ksiazka.statusDnf && (
-              <span className="shrink-0 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-bold text-red-700">
-                DNF
-              </span>
-            )}
           </div>
           <p className="mt-2 text-lg font-medium text-slate-600">
             Autor:{" "}
@@ -191,6 +202,28 @@ export default function WidokKsiazki() {
             ) : (
               <span className="text-sm italic text-slate-500">
                 Brak przypisanych gatunków
+              </span>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
+            Tagi
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {listaTagow.length > 0 ? (
+              listaTagow.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-900"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm italic text-slate-500">
+                Brak przypisanych tagów
               </span>
             )}
           </div>

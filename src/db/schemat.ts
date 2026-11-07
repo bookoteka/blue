@@ -16,9 +16,6 @@ export const ksiazki = sqliteTable("ksiazki", {
   ocena: integer("ocena"),
   jezyk: text("jezyk"),
   notatki: text("notatki"),
-  statusDnf: integer("status_dnf", { mode: "boolean" })
-    .notNull()
-    .default(false),
 });
 
 export const gatunki = sqliteTable("gatunki", {
@@ -35,8 +32,24 @@ export const ksiazkiGatunki = sqliteTable("ksiazki_gatunki", {
     .references(() => gatunki.id, { onDelete: "cascade" }),
 });
 
+export const tagi = sqliteTable("tagi", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nazwa: text("nazwa").notNull().unique(),
+});
+
+export const ksiazkiTagi = sqliteTable("ksiazki_tagi", {
+  ksiazkaId: integer("ksiazka_id")
+    .notNull()
+    .references(() => ksiazki.id, { onDelete: "cascade" }),
+  tagId: integer("tag_id")
+    .notNull()
+    .references(() => tagi.id, { onDelete: "cascade" }),
+});
+
 export const schematBazyDanych = {
   ksiazki,
   gatunki,
   ksiazkiGatunki,
+  tagi,
+  ksiazkiTagi,
 };

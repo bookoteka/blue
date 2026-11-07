@@ -31,10 +31,7 @@ export default function Glowna() {
     void zaladujKsiazki();
   }, []);
 
-  const przeczytaneKsiazki = ksiazkiZBazy.filter(
-    (ksiazka) => !ksiazka.statusDnf,
-  );
-  const iloscKsiazek = przeczytaneKsiazki.length;
+  const iloscKsiazek = ksiazkiZBazy.length;
   const sumaStron = ksiazkiZBazy.reduce(
     (suma, ksiazka) => suma + (ksiazka.strony ?? 0),
     0,

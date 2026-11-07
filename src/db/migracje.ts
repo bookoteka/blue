@@ -27,8 +27,7 @@ export async function przeprowadzMigracje(baza: Database): Promise<void> {
       jednotomowka INTEGER NOT NULL DEFAULT 0,
       ocena INTEGER,
       jezyk TEXT,
-      notatki TEXT,
-      status_dnf INTEGER NOT NULL DEFAULT 0
+      notatki TEXT
     )
   `);
 
@@ -47,6 +46,24 @@ export async function przeprowadzMigracje(baza: Database): Promise<void> {
         REFERENCES ksiazki(id) ON DELETE CASCADE,
       FOREIGN KEY (gatunek_id)
         REFERENCES gatunki(id) ON DELETE CASCADE
+    )
+  `);
+
+  await baza.execute(`
+    CREATE TABLE IF NOT EXISTS tagi (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nazwa TEXT NOT NULL UNIQUE
+    )
+  `);
+
+  await baza.execute(`
+    CREATE TABLE IF NOT EXISTS ksiazki_tagi (
+      ksiazka_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      FOREIGN KEY (ksiazka_id)
+        REFERENCES ksiazki(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id)
+        REFERENCES tagi(id) ON DELETE CASCADE
     )
   `);
 

@@ -4,38 +4,51 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
-import { gatunki, ksiazki, ksiazkiGatunki } from "../db/schemat";
+import {
+  gatunki,
+  ksiazki,
+  ksiazkiGatunki,
+  ksiazkiTagi,
+  tagi,
+} from "../db/schemat";
 
 const klasyPola =
   "w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 export default function Dodaj() {
   const [jednotomowka, setJednotomowka] = useState(false);
-  const [statusDnf, setStatusDnf] = useState(false);
   const [nazwaSerii, setNazwaSerii] = useState("");
   const [listaGatunkow, setListaGatunkow] = useState<
     { id: number; nazwa: string }[]
   >([]);
   const [wybraneGatunki, setWybraneGatunki] = useState<number[]>([]);
+  const [listaTagow, setListaTagow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
+  const [wybraneTagi, setWybraneTagi] = useState<number[]>([]);
   const [blad, setBlad] = useState<string | null>(null);
   const [zapisywanie, setZapisywanie] = useState(false);
   const nawigacja = useNavigate();
 
   useEffect(() => {
-    async function zaladujGatunki() {
+    async function zaladujSlowniki() {
       try {
         await inicjalizujBazeDanych();
-        const wyniki = await bazaDanych
-          .select({ id: gatunki.id, nazwa: gatunki.nazwa })
-          .from(gatunki);
-        setListaGatunkow(wyniki);
+        const [wynikiGatunkow, wynikiTagow] = await Promise.all([
+          bazaDanych
+            .select({ id: gatunki.id, nazwa: gatunki.nazwa })
+            .from(gatunki),
+          bazaDanych.select({ id: tagi.id, nazwa: tagi.nazwa }).from(tagi),
+        ]);
+        setListaGatunkow(wynikiGatunkow);
+        setListaTagow(wynikiTagow);
       } catch (bladLadowania) {
         console.error("Błąd podczas ładowania gatunków:", bladLadowania);
         setBlad("Nie udało się załadować gatunków. Spróbuj ponownie.");
       }
     }
 
-    void zaladujGatunki();
+    void zaladujSlowniki();
   }, []);
 
   async function obsluzZapis(e: FormEvent<HTMLFormElement>) {
@@ -65,7 +78,6 @@ export default function Dodaj() {
           tytul: String(daneFormularza.get("tytul")).trim(),
           autor: String(daneFormularza.get("autor")).trim(),
           strony: Number(daneFormularza.get("strony")),
-          statusDnf,
           format: String(daneFormularza.get("format")),
           seria: jednotomowka ? "" : seria,
           jednotomowka,
@@ -85,6 +97,15 @@ export default function Dodaj() {
           gatunekId,
         })),
       );
+
+      if (wybraneTagi.length > 0) {
+        await bazaDanych.insert(ksiazkiTagi).values(
+          wybraneTagi.map((tagId) => ({
+            ksiazkaId: zapisanaKsiazka.id,
+            tagId,
+          })),
+        );
+      }
 
       nawigacja("/");
     } catch (bladZapisu) {
@@ -140,19 +161,6 @@ export default function Dodaj() {
               type="checkbox"
             />
             <label htmlFor="jednotomowka">Jednotomówka</label>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              checked={statusDnf}
-              className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-              disabled={zapisywanie}
-              id="statusDnf"
-              name="statusDnf"
-              onChange={(e) => setStatusDnf(e.target.checked)}
-              type="checkbox"
-            />
-            <label htmlFor="statusDnf">Status DNF (nie ukończono)</label>
           </div>
 
           <div>
@@ -268,6 +276,43 @@ export default function Dodaj() {
                       type="checkbox"
                     />
                     <span>{gatunek.nazwa}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="mb-3 font-semibold text-slate-900">Tagi:</h2>
+            <div className="flex flex-wrap gap-2.5">
+              {listaTagow.map((tag) => {
+                const czyWybrany = wybraneTagi.includes(tag.id);
+
+                return (
+                  <label
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
+                      czyWybrany
+                        ? "border-primary-600 bg-primary-50/50 text-primary-900"
+                        : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    }`}
+                    key={tag.id}
+                  >
+                    <input
+                      checked={czyWybrany}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      disabled={zapisywanie}
+                      onChange={(e) => {
+                        setWybraneTagi((poprzednieTagi) =>
+                          e.target.checked
+                            ? [...poprzednieTagi, tag.id]
+                            : poprzednieTagi.filter(
+                                (id) => id !== tag.id,
+                              ),
+                        );
+                      }}
+                      type="checkbox"
+                    />
+                    <span>{tag.nazwa}</span>
                   </label>
                 );
               })}
