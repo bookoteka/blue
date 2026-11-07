@@ -37,6 +37,11 @@ export const tagi = sqliteTable("tagi", {
   nazwa: text("nazwa").notNull().unique(),
 });
 
+export const jezyki = sqliteTable("jezyki", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  nazwa: text("nazwa").notNull().unique(),
+});
+
 export const ksiazkiTagi = sqliteTable("ksiazki_tagi", {
   ksiazkaId: integer("ksiazka_id")
     .notNull()
@@ -51,5 +56,6 @@ export const schematBazyDanych = {
   gatunki,
   ksiazkiGatunki,
   tagi,
+  jezyki,
   ksiazkiTagi,
 };

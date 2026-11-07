@@ -12,6 +12,8 @@ const domyslneGatunki = [
   "Inne",
 ];
 
+const domyslneJezyki = ["Polski", "Angielski"];
+
 export async function przeprowadzMigracje(baza: Database): Promise<void> {
   await baza.execute("PRAGMA foreign_keys = ON");
 
@@ -57,6 +59,13 @@ export async function przeprowadzMigracje(baza: Database): Promise<void> {
   `);
 
   await baza.execute(`
+    CREATE TABLE IF NOT EXISTS jezyki (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nazwa TEXT NOT NULL UNIQUE
+    )
+  `);
+
+  await baza.execute(`
     CREATE TABLE IF NOT EXISTS ksiazki_tagi (
       ksiazka_id INTEGER NOT NULL,
       tag_id INTEGER NOT NULL,
@@ -71,11 +80,25 @@ export async function przeprowadzMigracje(baza: Database): Promise<void> {
     "SELECT COUNT(*) AS liczba FROM gatunki",
   );
 
-  if (wynik[0]?.liczba !== 0) {
-    return;
+  if (wynik[0]?.liczba === 0) {
+    for (const nazwa of domyslneGatunki) {
+      await baza.execute("INSERT INTO gatunki (nazwa) VALUES (?)", [nazwa]);
+    }
   }
 
-  for (const nazwa of domyslneGatunki) {
-    await baza.execute("INSERT INTO gatunki (nazwa) VALUES (?)", [nazwa]);
+  for (const nazwa of domyslneJezyki) {
+    await baza.execute("INSERT OR IGNORE INTO jezyki (nazwa) VALUES (?)", [nazwa]);
+  }
+
+  const zapisaneJezyki = await baza.select<{ jezyk: string | null }[]>(
+    "SELECT DISTINCT jezyk FROM ksiazki WHERE jezyk IS NOT NULL AND TRIM(jezyk) <> ''",
+  );
+
+  for (const { jezyk } of zapisaneJezyki) {
+    if (jezyk) {
+      await baza.execute("INSERT OR IGNORE INTO jezyki (nazwa) VALUES (?)", [
+        jezyk,
+      ]);
+    }
   }
 }

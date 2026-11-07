@@ -5,11 +5,18 @@ import { asc, eq } from "drizzle-orm";
 import { Link } from "react-router-dom";
 
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
-import { gatunki, ksiazkiGatunki, ksiazkiTagi, tagi } from "../db/schemat";
+import {
+  gatunki,
+  jezyki,
+  ksiazki,
+  ksiazkiGatunki,
+  ksiazkiTagi,
+  tagi,
+} from "../db/schemat";
 
 export default function Ustawienia() {
   const [aktywnaZakladka, setAktywnaZakladka] = useState<
-    "aplikacja" | "gatunki" | "tagi"
+    "aplikacja" | "gatunki" | "tagi" | "jezyki"
   >("aplikacja");
 
   return (
@@ -68,6 +75,17 @@ export default function Ustawienia() {
           >
             Tagi
           </button>
+          <button
+            className={`rounded-lg px-4 py-2 text-left text-lg font-medium transition-colors ${
+              aktywnaZakladka === "jezyki"
+                ? "bg-primary-600 text-white"
+                : "text-slate-700 hover:bg-primary-100"
+            }`}
+            onClick={() => setAktywnaZakladka("jezyki")}
+            type="button"
+          >
+            Języki
+          </button>
         </aside>
 
         <section className="min-h-75 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm md:col-span-3">
@@ -75,8 +93,10 @@ export default function Ustawienia() {
             <OAplikacji />
           ) : aktywnaZakladka === "gatunki" ? (
             <Gatunki />
-          ) : (
+          ) : aktywnaZakladka === "tagi" ? (
             <Tagi />
+          ) : (
+            <Jezyki />
           )}
         </section>
       </div>
@@ -393,6 +413,164 @@ function Tagi() {
                 type="button"
               >
                 {usuwanyTagId === tag.id ? "Usuwanie..." : "Usuń"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function Jezyki() {
+  const [listaJezykow, setListaJezykow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
+  const [nazwaJezyka, setNazwaJezyka] = useState("");
+  const [blad, setBlad] = useState<string | null>(null);
+  const [komunikat, setKomunikat] = useState<string | null>(null);
+  const [ladowanie, setLadowanie] = useState(true);
+  const [zapisywanie, setZapisywanie] = useState(false);
+  const [usuwanyJezykId, setUsuwanyJezykId] = useState<number | null>(null);
+
+  async function odswiezJezyki() {
+    const wyniki = await bazaDanych
+      .select({ id: jezyki.id, nazwa: jezyki.nazwa })
+      .from(jezyki)
+      .orderBy(asc(jezyki.nazwa));
+    setListaJezykow(wyniki);
+  }
+
+  useEffect(() => {
+    async function zaladujJezyki() {
+      try {
+        await inicjalizujBazeDanych();
+        await odswiezJezyki();
+      } catch (bladLadowania) {
+        console.error("Błąd podczas ładowania języków:", bladLadowania);
+        setBlad("Nie udało się załadować języków. Spróbuj ponownie.");
+      } finally {
+        setLadowanie(false);
+      }
+    }
+
+    void zaladujJezyki();
+  }, []);
+
+  async function obsluzDodanie(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const oczyszczonaNazwa = nazwaJezyka.trim();
+    setBlad(null);
+    setKomunikat(null);
+
+    if (oczyszczonaNazwa.length === 0) {
+      setBlad("Podaj nazwę języka.");
+      return;
+    }
+
+    if (
+      listaJezykow.some(
+        (jezyk) =>
+          jezyk.nazwa.toLocaleLowerCase() ===
+          oczyszczonaNazwa.toLocaleLowerCase(),
+      )
+    ) {
+      setBlad("Taki język już istnieje.");
+      return;
+    }
+
+    setZapisywanie(true);
+    try {
+      await bazaDanych.insert(jezyki).values({ nazwa: oczyszczonaNazwa });
+      setNazwaJezyka("");
+      await odswiezJezyki();
+      setKomunikat("Język został dodany.");
+    } catch (bladZapisu) {
+      console.error("Błąd podczas dodawania języka:", bladZapisu);
+      setBlad("Nie udało się dodać języka. Sprawdź, czy nazwa jest unikalna.");
+    } finally {
+      setZapisywanie(false);
+    }
+  }
+
+  async function obsluzUsuwanie(idJezyka: number, nazwaJezykaDoUsuniecia: string) {
+    setBlad(null);
+    setKomunikat(null);
+    setUsuwanyJezykId(idJezyka);
+
+    try {
+      const przypisania = await bazaDanych
+        .select({ id: ksiazki.id })
+        .from(ksiazki)
+        .where(eq(ksiazki.jezyk, nazwaJezykaDoUsuniecia));
+
+      if (przypisania.length > 0) {
+        setBlad("Nie można usunąć języka przypisanego do książek.");
+        return;
+      }
+
+      await bazaDanych.delete(jezyki).where(eq(jezyki.id, idJezyka));
+      await odswiezJezyki();
+      setKomunikat("Język został usunięty.");
+    } catch (bladUsuwania) {
+      console.error("Błąd podczas usuwania języka:", bladUsuwania);
+      setBlad("Nie udało się usunąć języka. Spróbuj ponownie.");
+    } finally {
+      setUsuwanyJezykId(null);
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="mb-6 text-2xl font-bold text-primary-900">Języki</h2>
+      <form className="mb-6 flex flex-col gap-3 sm:flex-row" onSubmit={obsluzDodanie}>
+        <label className="sr-only" htmlFor="nazwa-jezyka">
+          Nazwa języka
+        </label>
+        <input
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          id="nazwa-jezyka"
+          onChange={(e) => setNazwaJezyka(e.target.value)}
+          placeholder="Nazwa nowego języka"
+          type="text"
+          value={nazwaJezyka}
+        />
+        <button
+          className="rounded-lg bg-primary-600 px-5 py-2 font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={zapisywanie}
+          type="submit"
+        >
+          {zapisywanie ? "Dodawanie..." : "Dodaj język"}
+        </button>
+      </form>
+
+      {blad && (
+        <p aria-live="polite" className="mb-4 rounded-lg border border-red-300 bg-red-100 p-3 text-sm text-red-700">
+          {blad}
+        </p>
+      )}
+      {komunikat && (
+        <p aria-live="polite" className="mb-4 rounded-lg border border-green-300 bg-green-100 p-3 text-sm text-green-700">
+          {komunikat}
+        </p>
+      )}
+
+      {ladowanie ? (
+        <p className="text-slate-500">Ładowanie języków...</p>
+      ) : listaJezykow.length === 0 ? (
+        <p className="text-slate-500">Brak języków.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+          {listaJezykow.map((jezyk) => (
+            <li className="flex items-center justify-between gap-4 px-4 py-3" key={jezyk.id}>
+              <span className="text-slate-700">{jezyk.nazwa}</span>
+              <button
+                className="text-sm font-medium text-red-600 transition-colors hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={usuwanyJezykId === jezyk.id}
+                onClick={() => void obsluzUsuwanie(jezyk.id, jezyk.nazwa)}
+                type="button"
+              >
+                {usuwanyJezykId === jezyk.id ? "Usuwanie..." : "Usuń"}
               </button>
             </li>
           ))}

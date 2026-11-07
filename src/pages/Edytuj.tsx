@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
 import {
   gatunki,
+  jezyki,
   ksiazki,
   ksiazkiGatunki,
   ksiazkiTagi,
@@ -32,6 +33,9 @@ export default function Edytuj() {
     { id: number; nazwa: string }[]
   >([]);
   const [wybraneTagi, setWybraneTagi] = useState<number[]>([]);
+  const [listaJezykow, setListaJezykow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
   const [ladowanie, setLadowanie] = useState(true);
   const [blad, setBlad] = useState<string | null>(null);
   const [zapisywanie, setZapisywanie] = useState(false);
@@ -55,6 +59,7 @@ export default function Edytuj() {
           wszystkieGatunki,
           wynikiTagow,
           wszystkieTagi,
+          wszystkieJezyki,
         ] =
           await Promise.all([
             bazaDanych
@@ -73,6 +78,9 @@ export default function Edytuj() {
               .from(ksiazkiTagi)
               .where(eq(ksiazkiTagi.ksiazkaId, idKsiazki)),
             bazaDanych.select({ id: tagi.id, nazwa: tagi.nazwa }).from(tagi),
+            bazaDanych
+              .select({ id: jezyki.id, nazwa: jezyki.nazwa })
+              .from(jezyki),
           ]);
 
         const znalezionaKsiazka = wynikiKsiazki[0];
@@ -88,6 +96,7 @@ export default function Edytuj() {
         setListaGatunkow(wszystkieGatunki);
         setWybraneTagi(wynikiTagow.map(({ tagId }) => tagId));
         setListaTagow(wszystkieTagi);
+        setListaJezykow(wszystkieJezyki);
       } catch (bladLadowania) {
         console.error("Błąd podczas ładowania książki do edycji:", bladLadowania);
         if (aktywny) {
@@ -282,8 +291,11 @@ export default function Edytuj() {
             <label htmlFor="jezyk">Język:</label>
             <select className={`${klasyPola} cursor-pointer bg-white`} defaultValue={ksiazka.jezyk ?? ""} id="jezyk" name="jezyk" required>
               <option disabled value="">Wybierz język</option>
-              <option value="Polski">Polski</option>
-              <option value="Angielski">Angielski</option>
+              {listaJezykow.map((jezyk) => (
+                <option key={jezyk.id} value={jezyk.nazwa}>
+                  {jezyk.nazwa}
+                </option>
+              ))}
             </select>
           </div>
 

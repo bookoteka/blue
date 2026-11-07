@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { bazaDanych, inicjalizujBazeDanych } from "../db/polaczenie";
 import {
   gatunki,
+  jezyki,
   ksiazki,
   ksiazkiGatunki,
   ksiazkiTagi,
@@ -26,6 +27,9 @@ export default function Dodaj() {
     { id: number; nazwa: string }[]
   >([]);
   const [wybraneTagi, setWybraneTagi] = useState<number[]>([]);
+  const [listaJezykow, setListaJezykow] = useState<
+    { id: number; nazwa: string }[]
+  >([]);
   const [blad, setBlad] = useState<string | null>(null);
   const [zapisywanie, setZapisywanie] = useState(false);
   const nawigacja = useNavigate();
@@ -34,17 +38,21 @@ export default function Dodaj() {
     async function zaladujSlowniki() {
       try {
         await inicjalizujBazeDanych();
-        const [wynikiGatunkow, wynikiTagow] = await Promise.all([
+        const [wynikiGatunkow, wynikiTagow, wynikiJezykow] = await Promise.all([
           bazaDanych
             .select({ id: gatunki.id, nazwa: gatunki.nazwa })
             .from(gatunki),
           bazaDanych.select({ id: tagi.id, nazwa: tagi.nazwa }).from(tagi),
+          bazaDanych
+            .select({ id: jezyki.id, nazwa: jezyki.nazwa })
+            .from(jezyki),
         ]);
         setListaGatunkow(wynikiGatunkow);
         setListaTagow(wynikiTagow);
+        setListaJezykow(wynikiJezykow);
       } catch (bladLadowania) {
-        console.error("Błąd podczas ładowania gatunków:", bladLadowania);
-        setBlad("Nie udało się załadować gatunków. Spróbuj ponownie.");
+        console.error("Błąd podczas ładowania słowników:", bladLadowania);
+        setBlad("Nie udało się załadować danych formularza. Spróbuj ponownie.");
       }
     }
 
@@ -240,8 +248,11 @@ export default function Dodaj() {
               <option disabled value="">
                 Wybierz język
               </option>
-              <option value="Polski">Polski</option>
-              <option value="Angielski">Angielski</option>
+              {listaJezykow.map((jezyk) => (
+                <option key={jezyk.id} value={jezyk.nazwa}>
+                  {jezyk.nazwa}
+                </option>
+              ))}
             </select>
           </div>
 
