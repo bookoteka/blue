@@ -6,6 +6,7 @@ import Dodaj from "./pages/Dodaj";
 import Ustawienia from "./pages/Ustawienia";
 import WidokKsiazki from "./pages/WidokKsiazki";
 import Edytuj from "./pages/Edytuj";
+import Wykresy from "./pages/Wykresy";
 
 export default function App () {
   return (
@@ -17,6 +18,7 @@ export default function App () {
           <Route path="/ustawienia" element={<Ustawienia/>} />
           <Route path="/ksiazka/:id" element={<WidokKsiazki/>} />
           <Route path="/ksiazka/:id/edytuj" element={<Edytuj/>} />
+          <Route path="/wykresy" element={<Wykresy/>} />
         </Routes>
       </div>
     </MemoryRouter>

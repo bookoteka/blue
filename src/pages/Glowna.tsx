@@ -188,6 +188,13 @@ function ModalMenu({ otwarte, onClose }: ModalMenuProps) {
             Dodaj książkę
           </Link>
           <Link
+            to='/wykresy'
+            onClick={onClose}
+            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary-50 transition-colors cursor-pointer"
+          >
+            Wykresy
+          </Link>
+          <Link
             to='/ustawienia'
             onClick={onClose} 
             className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary-50 transition-colors cursor-pointer"
